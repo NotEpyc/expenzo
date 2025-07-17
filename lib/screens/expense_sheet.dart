@@ -40,7 +40,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
   bool _isSubmitting = false;
   bool _isExpenseCompleted = false;
   double _totalItemsAmount = 0.0;
-  String? _uploadedImageUrl;
+  List<String> _uploadedImageUrls = [];
   bool _isImageUploading = false;
   final ImagePicker _picker = ImagePicker();
 
@@ -591,6 +591,98 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
         const SizedBox(height: 8),
         Row(
           children: [
+            // Display uploaded images on the left
+            if (_uploadedImageUrls.isNotEmpty) ...[
+              Expanded(
+                child: SizedBox(
+                  height: 60,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _uploadedImageUrls.length,
+                    separatorBuilder: (context, index) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      return Stack(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(15),
+                              child: Image.network(
+                                _uploadedImageUrls[index],
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    width: 60,
+                                    height: 60,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 60,
+                                    height: 60,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
+                                    child: Icon(
+                                      Icons.error_outline,
+                                      color: Colors.grey.shade600,
+                                      size: 24,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          // Remove button
+                          Positioned(
+                            top: -4,
+                            right: -4,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _uploadedImageUrls.removeAt(index);
+                                });
+                              },
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
+            // Plus button (on the right)
             GestureDetector(
               onTap: _isImageUploading ? null : _openGallery,
               child: Container(
@@ -618,50 +710,6 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                       ),
               ),
             ),
-            if (_uploadedImageUrl != null) ...[
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    border: Border.all(color: Colors.green.shade300),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        color: Colors.green.shade600,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Text(
-                          'Image uploaded successfully',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _uploadedImageUrl = null;
-                          });
-                        },
-                        child: Icon(
-                          Icons.close,
-                          color: Colors.grey.shade600,
-                          size: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       ],
@@ -1246,7 +1294,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
         if (responseData['success'] == true) {
           final imageUrl = responseData['data']['url'];
           setState(() {
-            _uploadedImageUrl = imageUrl;
+            _uploadedImageUrls.add(imageUrl);
             _isImageUploading = false;
           });
           
@@ -1428,7 +1476,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
         notes: _notesController.text.trim().isNotEmpty 
             ? _notesController.text.trim() 
             : null,
-        imageUrl: _uploadedImageUrl,
+        imageUrls: _uploadedImageUrls,
       );
 
       await _expenseService.updateExpense(widget.expenseId, expense);

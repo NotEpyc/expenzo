@@ -21,6 +21,7 @@ class ExpenseService {
         'paid': expense.paid,
         'paymentMode': expense.paymentMode,
         'notes': expense.notes,
+        'imageUrls': expense.imageUrls,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
@@ -45,6 +46,7 @@ class ExpenseService {
         'paid': expense.paid,
         'paymentMode': expense.paymentMode,
         'notes': expense.notes,
+        'imageUrls': expense.imageUrls,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
@@ -70,6 +72,7 @@ class ExpenseService {
         'totalBilling': 0.0,
         'paid': 0.0,
         'paymentMode': 'Please Select',
+        'imageUrls': <String>[],
         'createdAt': FieldValue.serverTimestamp(),
         'isComplete': false,
       };
@@ -138,6 +141,11 @@ class ExpenseService {
           itemIds = List<String>.from(data['itemIds'] as List);
         }
 
+        List<String> imageUrls = [];
+        if (data['imageUrls'] is List) {
+          imageUrls = List<String>.from(data['imageUrls'] as List);
+        }
+
         return Expense(
           id: doc.id,
           date: date,
@@ -149,6 +157,7 @@ class ExpenseService {
           paid: (data['paid'] as num?)?.toDouble() ?? 0.0,
           paymentMode: data['paymentMode'] ?? '',
           notes: data['notes'],
+          imageUrls: imageUrls,
           createdAt: createdAt,
         );
       }).toList();
@@ -198,6 +207,11 @@ class ExpenseService {
           itemIds = List<String>.from(data['itemIds'] as List);
         }
 
+        List<String> imageUrls = [];
+        if (data['imageUrls'] is List) {
+          imageUrls = List<String>.from(data['imageUrls'] as List);
+        }
+
         return Expense(
           id: doc.id,
           date: date,
@@ -209,6 +223,7 @@ class ExpenseService {
           paid: (data['paid'] as num?)?.toDouble() ?? 0.0,
           paymentMode: data['paymentMode'] ?? '',
           notes: data['notes'],
+          imageUrls: imageUrls,
           createdAt: createdAt,
         );
       }).toList();
@@ -229,6 +244,7 @@ class ExpenseService {
         'paid': expense.paid,
         'paymentMode': expense.paymentMode,
         'notes': expense.notes,
+        'imageUrls': expense.imageUrls,
         'isComplete': true,
       };
 

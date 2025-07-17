@@ -9,7 +9,7 @@ class Expense {
   final double paid;
   final String paymentMode;
   final String? notes;
-  final String? imageUrl;
+  final List<String> imageUrls;
   final DateTime? createdAt;
 
   const Expense({
@@ -23,7 +23,7 @@ class Expense {
     required this.paid,
     required this.paymentMode,
     this.notes,
-    this.imageUrl,
+    this.imageUrls = const [],
     this.createdAt,
   });
 
@@ -38,7 +38,7 @@ class Expense {
     double? paid,
     String? paymentMode,
     String? notes,
-    String? imageUrl,
+    List<String>? imageUrls,
     DateTime? createdAt,
   }) {
     return Expense(
@@ -52,7 +52,7 @@ class Expense {
       paid: paid ?? this.paid,
       paymentMode: paymentMode ?? this.paymentMode,
       notes: notes ?? this.notes,
-      imageUrl: imageUrl ?? this.imageUrl,
+      imageUrls: imageUrls ?? this.imageUrls,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -69,7 +69,7 @@ class Expense {
       'paid': paid,
       'paymentMode': paymentMode,
       'notes': notes,
-      'imageUrl': imageUrl,
+      'imageUrls': imageUrls,
       'createdAt': createdAt?.millisecondsSinceEpoch,
     };
   }
@@ -90,7 +90,9 @@ class Expense {
       paid: (json['paid'] as num).toDouble(),
       paymentMode: json['paymentMode'] as String,
       notes: json['notes'] as String?,
-      imageUrl: json['imageUrl'] as String?,
+      imageUrls: json['imageUrls'] != null 
+          ? List<String>.from(json['imageUrls'] as List)
+          : [],
       createdAt: json['createdAt'] != null 
           ? DateTime.fromMillisecondsSinceEpoch(json['createdAt'] as int)
           : null,
