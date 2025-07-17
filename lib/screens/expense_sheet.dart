@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'add_items_sheet.dart';
+import '../models/expense.dart';
+import '../services/expense_service.dart';
+import '../services/item_service.dart';
+import '../utils/responsive_utils.dart';
 
 class ExpenseSheet extends StatefulWidget {
-  const ExpenseSheet({super.key});
+  final String expenseId;
+  
+  const ExpenseSheet({super.key, required this.expenseId});
 
   @override
   State<ExpenseSheet> createState() => _ExpenseSheetState();
@@ -13,16 +19,27 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
   final TextEditingController _vendorController = TextEditingController();
   final TextEditingController _totalBillingController = TextEditingController();
   final TextEditingController _paidController = TextEditingController();
+  final FocusNode _paidFocusNode = FocusNode();
+  final ExpenseService _expenseService = ExpenseService();
+  final ItemService _itemService = ItemService();
+  
   DateTime _selectedDate = DateTime.now();
   String _selectedPaymentMode = 'Please Select';
   bool _showVendorField = false;
-  int _totalItemQuantity = 0;
-  bool _isTotalBillingEditable = false;
+  bool _isPaidEditable = false;
+  bool _isSubmitting = false;
+  bool _isExpenseCompleted = false;
+  double _totalItemsAmount = 0.0;
 
   @override
   void initState() {
     super.initState();
     _categoryController.addListener(_onCategoryChanged);
+    _totalBillingController.text = '0.00';
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateTotalBillingFromItems();
+    });
   }
 
   @override
@@ -32,6 +49,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
     _vendorController.dispose();
     _totalBillingController.dispose();
     _paidController.dispose();
+    _paidFocusNode.dispose();
     super.dispose();
   }
 
@@ -49,12 +67,12 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
         FocusScope.of(context).unfocus();
       },
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: const BoxDecoration(
+        height: MediaQuery.of(context).size.height * ResponsiveUtils.getModalHeight(context),
+        decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+            topLeft: Radius.circular(ResponsiveUtils.getResponsiveBorderRadius(context, 20)),
+            topRight: Radius.circular(ResponsiveUtils.getResponsiveBorderRadius(context, 20)),
           ),
         ),
         child: Column(
@@ -62,26 +80,26 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
             _buildHeader(),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(ResponsiveUtils.getResponsivePadding(context, 20)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildDateField(),
-                    const SizedBox(height: 20),
+                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
                     _buildCategoryField(),
                     if (_showVendorField) ...[
-                      const SizedBox(height: 20),
+                      SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
                       _buildVendorField(),
                     ],
-                    const SizedBox(height: 20),
+                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
                     _buildAddItemButton(),
-                    const SizedBox(height: 20),
+                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
                     _buildTotalBillingField(),
-                    const SizedBox(height: 20),
+                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
                     _buildPaidField(),
-                    const SizedBox(height: 20),
+                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
                     _buildPaymentModeField(),
-                    const SizedBox(height: 40),
+                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 40)),
                   ],
                 ),
               ),
@@ -95,14 +113,14 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(ResponsiveUtils.getResponsivePadding(context, 20)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             'New Expense',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: ResponsiveUtils.getResponsiveFontSize(context, 18),
               fontWeight: FontWeight.w600,
               color: const Color(0xFFE91E63),
             ),
@@ -298,7 +316,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
             ),
             const SizedBox(width: 8),
             Text(
-              _totalItemQuantity > 0 ? 'Add Item ($_totalItemQuantity)' : 'Add Item',
+              'Add Items',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -327,10 +345,13 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(
-                Icons.info_outline,
-                size: 18,
-                color: const Color(0xFF4CAF50),
+              GestureDetector(
+                onTap: _updateTotalBillingFromItems,
+                child: Icon(
+                  Icons.refresh,
+                  size: 18,
+                  color: const Color(0xFF4CAF50),
+                ),
               ),
             ],
           ),
@@ -353,7 +374,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                 child: TextField(
                   controller: _totalBillingController,
                   keyboardType: TextInputType.number,
-                  enabled: _isTotalBillingEditable,
+                  enabled: false,
                   decoration: InputDecoration(
                     hintText: '0.00',
                     hintStyle: TextStyle(
@@ -376,18 +397,9 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                   ),
                   style: TextStyle(
                     fontSize: 16,
-                    color: _isTotalBillingEditable ? Colors.blue : Colors.grey.shade600,
+                    color: _totalItemsAmount > 0 ? Colors.green.shade700 : Colors.grey.shade600,
                     fontWeight: FontWeight.w500,
                   ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: _toggleTotalBillingEditing,
-                child: Icon(
-                  _isTotalBillingEditable ? Icons.check : Icons.edit,
-                  size: 18,
-                  color: const Color(0xFF4CAF50),
                 ),
               ),
             ],
@@ -428,7 +440,9 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
               Expanded(
                 child: TextField(
                   controller: _paidController,
+                  focusNode: _paidFocusNode,
                   keyboardType: TextInputType.number,
+                  enabled: _isPaidEditable,
                   decoration: InputDecoration(
                     hintText: '0.00',
                     hintStyle: TextStyle(
@@ -444,13 +458,25 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                     focusedBorder: UnderlineInputBorder(
                       borderSide: BorderSide(color: const Color(0xFFE91E63)),
                     ),
+                    disabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
-                    color: Color(0xFFE91E63),
+                    color: _isPaidEditable ? const Color(0xFFE91E63) : Colors.grey.shade600,
                     fontWeight: FontWeight.w500,
                   ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _togglePaidEditing,
+                child: Icon(
+                  _isPaidEditable ? Icons.check : Icons.edit,
+                  size: 18,
+                  color: const Color(0xFF4CAF50),
                 ),
               ),
             ],
@@ -519,57 +545,98 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
 
   Widget _buildBottomButtons() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(ResponsiveUtils.getResponsivePadding(context, 20)),
       child: Column(
         children: [
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: (_isSubmitting || _isExpenseCompleted) ? null : _submitExpense,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey.shade300,
-                foregroundColor: Colors.grey.shade600,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: (_isSubmitting || _isExpenseCompleted)
+                    ? Colors.grey.shade300 
+                    : const Color(0xFF4CAF50),
+                foregroundColor: (_isSubmitting || _isExpenseCompleted)
+                    ? Colors.grey.shade600 
+                    : Colors.white,
+                padding: EdgeInsets.symmetric(
+                  vertical: ResponsiveUtils.getResponsivePadding(context, 16),
+                ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(
+                    ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+                  ),
                 ),
-                elevation: 0,
+                elevation: (_isSubmitting || _isExpenseCompleted) ? 0 : 2,
               ),
-              child: const Text(
-                'Submit',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              child: _isSubmitting
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: ResponsiveUtils.getResponsiveIconSize(context, 16),
+                          height: ResponsiveUtils.getResponsiveIconSize(context, 16),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 8)),
+                        Text(
+                          'Submitting...',
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getResponsiveFontSize(context, 16),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Text(
+                      _isExpenseCompleted ? 'Saved' : 'Submit',
+                      style: TextStyle(
+                        fontSize: ResponsiveUtils.getResponsiveFontSize(context, 16),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 12)),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: () {
-                Navigator.pop(context);
+              onPressed: _isSubmitting ? null : () {
+                Navigator.pop(context, false);
               },
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF4CAF50),
-                side: BorderSide(color: const Color(0xFF4CAF50)),
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                foregroundColor: _isSubmitting 
+                    ? Colors.grey.shade400 
+                    : const Color(0xFF4CAF50),
+                side: BorderSide(
+                  color: _isSubmitting 
+                      ? Colors.grey.shade400 
+                      : const Color(0xFF4CAF50),
+                ),
+                padding: EdgeInsets.symmetric(
+                  vertical: ResponsiveUtils.getResponsivePadding(context, 16),
+                ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(
+                    ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+                  ),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 'Cancel',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, 16),
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
           ),
+          SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
         ],
       ),
     );
@@ -675,35 +742,201 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
   }
 
   void _openAddItemsSheet() async {
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
+    final result = await showModalBottomSheet<dynamic>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       enableDrag: true,
       isDismissible: true,
-      builder: (context) => const AddItemsSheet(),
+      builder: (context) => AddItemsSheet(tempExpenseId: widget.expenseId),
     );
 
-    if (result != null && result['totalQuantity'] != null) {
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    await _updateTotalBillingFromItems();
+    
+    if (result != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Items updated successfully'),
+          backgroundColor: Color(0xFF4CAF50),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+
+  void _openAddItemsSheetWithExpenseId(String expenseId) async {
+    final result = await showModalBottomSheet<dynamic>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      enableDrag: true,
+      isDismissible: true,
+      builder: (context) => AddItemsSheet(tempExpenseId: expenseId),
+    );
+
+    await _updateTotalBillingFromItems();
+    
+    if (result != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Items saved to database successfully'),
+          backgroundColor: Color(0xFF4CAF50),
+        ),
+      );
+    }
+  }
+
+  Future<void> _submitExpense() async {
+    if (_isExpenseCompleted) {
+      _showErrorSnackBar('This expense has already been saved');
+      return;
+    }
+
+    if (_categoryController.text.trim().isEmpty) {
+      _showErrorSnackBar('Please enter a category name');
+      return;
+    }
+
+    if (_selectedPaymentMode == 'Please Select') {
+      _showErrorSnackBar('Please select a payment mode');
+      return;
+    }
+
+    if (_paidController.text.trim().isEmpty) {
+      _showErrorSnackBar('Please enter the paid amount');
+      return;
+    }
+
+    await _updateTotalBillingFromItems();
+
+    double totalBilling = _totalItemsAmount > 0 ? _totalItemsAmount : 
+        (_totalBillingController.text.trim().isNotEmpty ? 
+         double.tryParse(_totalBillingController.text.trim()) ?? 0.0 : 0.0);
+    
+    if (totalBilling <= 0) {
+      _showErrorSnackBar('Please add items or enter a total billing amount');
+      return;
+    }
+
+    double paid;
+
+    try {
+      paid = double.parse(_paidController.text.trim());
+    } catch (e) {
+      _showErrorSnackBar('Please enter valid numeric values for paid amount');
+      return;
+    }
+
+    if (totalBilling < 0 || paid < 0) {
+      _showErrorSnackBar('Billing amounts cannot be negative');
+      return;
+    }
+
+    if (paid > totalBilling) {
+      _showErrorSnackBar('Paid amount cannot be greater than total billing');
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final expense = Expense(
+        id: widget.expenseId,
+        date: _selectedDate,
+        categoryName: _categoryController.text.trim(),
+        vendorName: _vendorController.text.trim().isNotEmpty 
+            ? _vendorController.text.trim() 
+            : null,
+        items: [],
+        totalBilling: totalBilling,
+        paid: paid,
+        paymentMode: _selectedPaymentMode,
+      );
+
+      await _expenseService.updateExpense(widget.expenseId, expense);
+
       setState(() {
-        _totalItemQuantity = result['totalQuantity'];
+        _isExpenseCompleted = true;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Expense saved successfully!'),
+            backgroundColor: const Color(0xFF4CAF50),
+            duration: const Duration(seconds: 2),
+            action: SnackBarAction(
+              label: 'Add Items',
+              textColor: Colors.white,
+              onPressed: () {
+                _openAddItemsSheetWithExpenseId(widget.expenseId);
+              },
+            ),
+          ),
+        );
+
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar('Failed to save expense: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _togglePaidEditing() {
+    setState(() {
+      _isPaidEditable = !_isPaidEditable;
+    });
+    
+    if (_isPaidEditable) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        FocusScope.of(context).requestFocus(_paidFocusNode);
+        _paidController.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: _paidController.text.length,
+        );
       });
     }
   }
 
-  void _toggleTotalBillingEditing() {
-    setState(() {
-      _isTotalBillingEditable = !_isTotalBillingEditable;
-      if (_isTotalBillingEditable) {
-        // Focus and select all text when enabling editing
-        Future.delayed(const Duration(milliseconds: 100), () {
-          _totalBillingController.selection = TextSelection(
-            baseOffset: 0,
-            extentOffset: _totalBillingController.text.length,
-          );
-          FocusScope.of(context).requestFocus(FocusNode());
+  Future<void> _updateTotalBillingFromItems() async {
+    try {
+      final totalPrice = await _itemService.getTotalItemPriceForExpense(widget.expenseId);
+      if (mounted) {
+        setState(() {
+          _totalItemsAmount = totalPrice;
+          _totalBillingController.text = totalPrice.toStringAsFixed(2);
         });
       }
-    });
+    } catch (e) {
+      print('Failed to calculate total items price: $e');
+      if (mounted) {
+        setState(() {
+          _totalItemsAmount = 0.0;
+          _totalBillingController.text = '0.00';
+        });
+      }
+    }
   }
 }

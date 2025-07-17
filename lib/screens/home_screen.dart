@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../controllers/home_controller.dart';
 import '../models/expense_category.dart';
+import '../services/expense_service.dart';
+import '../services/item_service.dart';
+import '../utils/responsive_utils.dart';
 import 'expense_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -14,6 +17,8 @@ class _HomeScreenState extends State<HomeScreen> {
   late HomeController _controller;
   final TextEditingController _textController = TextEditingController();
   final FocusNode _textFieldFocusNode = FocusNode();
+  final ExpenseService _expenseService = ExpenseService();
+  final ItemService _itemService = ItemService();
 
   @override
   void initState() {
@@ -58,29 +63,33 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.white,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color:  Color(0xFF4CAF50)),
+        icon: Icon(
+          Icons.arrow_back, 
+          color: const Color(0xFF4CAF50),
+          size: ResponsiveUtils.getResponsiveIconSize(context, 24),
+        ),
         onPressed: () {},
       ),
       title: Row(
         children: [
-          const Text(
+          Text(
             'Sales & Expense',
             style: TextStyle(
               color: Colors.black87,
-              fontSize: 18,
+              fontSize: ResponsiveUtils.getResponsiveFontSize(context, 18),
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 8)),
           Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
+            padding: EdgeInsets.all(ResponsiveUtils.getResponsivePadding(context, 2)),
+            decoration: const BoxDecoration(
               color: Colors.transparent,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.info_outline,
-              size: 18,
+              size: ResponsiveUtils.getResponsiveIconSize(context, 18),
               color: const Color(0xFF4CAF50),
             ),
           ),
@@ -88,7 +97,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.search, color: Colors.grey, size: 30,),
+          icon: Icon(
+            Icons.search, 
+            color: Colors.grey, 
+            size: ResponsiveUtils.getResponsiveIconSize(context, 30),
+          ),
           onPressed: () {
             _controller.onSearch('');
           },
@@ -100,7 +113,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTabBar() {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.getResponsivePadding(context, 8),
+      ),
       child: Row(
         children: [
           Expanded(
@@ -130,7 +145,10 @@ class _HomeScreenState extends State<HomeScreen> {
             _controller.changeTab(index);
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+            padding: EdgeInsets.symmetric(
+              vertical: ResponsiveUtils.getResponsivePadding(context, 16), 
+              horizontal: ResponsiveUtils.getResponsivePadding(context, 4),
+            ),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
@@ -142,11 +160,13 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Text(
               title,
               textAlign: TextAlign.center,
-              maxLines: 1,
+              maxLines: ResponsiveUtils.isSmallPhone(context) ? 2 : 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: isSelected ? const Color(0xFFE91E63) : Colors.grey.shade600,
-                fontSize: index == 2 ? 12 : 14, // Smaller font for "Money Management"
+                fontSize: index == 2 
+                    ? ResponsiveUtils.getResponsiveFontSize(context, 12)
+                    : ResponsiveUtils.getResponsiveFontSize(context, 14),
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -167,13 +187,13 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(ResponsiveUtils.getResponsivePadding(context, 16)),
           child: Column(
             children: [
               _buildAddCategoryInput(),
-              const SizedBox(height: 16),
+              SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 16)),
               ..._controller.categories.map((category) => _buildCategoryItem(category)),
-              const SizedBox(height: 60),
+              SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 60)),
             ],
           ),
         );
@@ -187,10 +207,15 @@ class _HomeScreenState extends State<HomeScreen> {
         _textFieldFocusNode.requestFocus();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: ResponsiveUtils.getResponsivePadding(context, 16), 
+          vertical: ResponsiveUtils.getResponsivePadding(context, 8),
+        ),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(
+            ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+          ),
           border: Border.all(color: Colors.grey.shade200),
         ),
         child: Row(
@@ -207,25 +232,25 @@ class _HomeScreenState extends State<HomeScreen> {
                   hintText: 'Type here to add more category',
                   hintStyle: TextStyle(
                     color: Colors.grey.shade500,
-                    fontSize: 14,
+                    fontSize: ResponsiveUtils.getResponsiveFontSize(context, 14),
                   ),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.zero,
                 ),
-                style: const TextStyle(
-                  fontSize: 14,
+                style: TextStyle(
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, 14),
                   color: Colors.black87,
                 ),
               ),
             ),
             if (_textController.text.isNotEmpty) ...[
-              const SizedBox(width: 8),
+              SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 8)),
               GestureDetector(
                 onTap: _addNewCategory,
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_forward,
-                  color: Color(0xFF4CAF50),
-                  size: 20,
+                  color: const Color(0xFF4CAF50),
+                  size: ResponsiveUtils.getResponsiveIconSize(context, 20),
                 ),
               ),
             ],
@@ -246,19 +271,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCategoryItem(ExpenseCategory category) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: EdgeInsets.only(
+        bottom: ResponsiveUtils.getResponsiveSpacing(context, 8),
+      ),
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(
+          ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+        ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(
+            ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+          ),
           onTap: () {
             _controller.onCategoryTap(category.id);
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            padding: EdgeInsets.symmetric(
+              horizontal: ResponsiveUtils.getResponsivePadding(context, 16), 
+              vertical: ResponsiveUtils.getResponsivePadding(context, 16),
+            ),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(
+                ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+              ),
               border: Border.all(color: Colors.grey.shade200),
             ),
             child: Row(
@@ -270,31 +306,33 @@ class _HomeScreenState extends State<HomeScreen> {
                         // Options button - no functionality
                       },
                       child: Container(
-                        width: 24,
-                        height: 24,
+                        width: ResponsiveUtils.getResponsiveIconSize(context, 24),
+                        height: ResponsiveUtils.getResponsiveIconSize(context, 24),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(
+                            ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+                          ),
                           border: Border.all(color: const Color(0xFF4CAF50), width: 1.5),
                         ),
                         child: Icon(
                           Icons.more_horiz,
                           color: const Color(0xFF4CAF50),
-                          size: 16,
+                          size: ResponsiveUtils.getResponsiveIconSize(context, 16),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 12)),
                 ] else if (category.hasIcon) ...[
-                  const SizedBox(width: 36),
+                  SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 36)),
                 ] else ...[
-                  const SizedBox(width: 36),
+                  SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 36)),
                 ],
                 Expanded(
                   child: Text(
                     category.name,
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: ResponsiveUtils.getResponsiveFontSize(context, 16),
                       fontWeight: FontWeight.w500,
                       color: Colors.black87,
                     ),
@@ -303,7 +341,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icon(
                   Icons.chevron_right,
                   color: Colors.grey.shade400,
-                  size: 20,
+                  size: ResponsiveUtils.getResponsiveIconSize(context, 20),
                 ),
               ],
             ),
@@ -315,18 +353,38 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildFloatingActionButton() {
     return FloatingActionButton(
-      onPressed: () {
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          enableDrag: true,
-          isDismissible: true,
-          builder: (context) => const ExpenseSheet(),
-        );
+      onPressed: () async {
+        try {
+          final expenseId = await _expenseService.createMinimalExpense();
+          
+          final result = await showModalBottomSheet<bool>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            enableDrag: true,
+            isDismissible: true,
+            builder: (context) => ExpenseSheet(expenseId: expenseId),
+          );
+          
+          if (result != true) {
+            await _expenseService.deleteExpense(expenseId);
+            await _itemService.deleteItemsByExpenseId(expenseId);
+          }
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error creating expense: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       },
       backgroundColor: const Color(0xFFE91E63),
-      child: const Icon(Icons.add, color: Colors.white),
+      child: Icon(
+        Icons.add, 
+        color: Colors.white,
+        size: ResponsiveUtils.getResponsiveIconSize(context, 24),
+      ),
     );
   }
 }

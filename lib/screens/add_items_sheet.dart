@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import '../utils/responsive_utils.dart';
+import '../models/item.dart';
+import '../services/item_service.dart';
 
 class AddItemsSheet extends StatefulWidget {
-  const AddItemsSheet({super.key});
+  final String? tempExpenseId;
+  
+  const AddItemsSheet({
+    super.key,
+    this.tempExpenseId,
+  });
 
   @override
   State<AddItemsSheet> createState() => _AddItemsSheetState();
@@ -12,7 +20,8 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
   final TextEditingController _quantityController = TextEditingController();
   final TextEditingController _pricingController = TextEditingController();
   String _selectedQuantityType = 'Please Select';
-  final List<Map<String, dynamic>> _items = [];
+  final ItemService _itemService = ItemService();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -30,12 +39,12 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
         FocusScope.of(context).unfocus();
       },
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.9,
-        decoration: const BoxDecoration(
+        height: MediaQuery.of(context).size.height * ResponsiveUtils.getModalHeight(context),
+        decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+            topLeft: Radius.circular(ResponsiveUtils.getResponsiveBorderRadius(context, 20)),
+            topRight: Radius.circular(ResponsiveUtils.getResponsiveBorderRadius(context, 20)),
           ),
         ),
         child: Column(
@@ -43,32 +52,28 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
             _buildHeader(),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(ResponsiveUtils.getResponsivePadding(context, 20)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildItemNameField(),
-                    const SizedBox(height: 20),
+                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
                     Row(
                       children: [
                         Expanded(
-                          flex: 3,
+                          flex: 4,
                           child: _buildQuantityField(),
                         ),
-                        const SizedBox(width: 16),
+                        SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, 16)),
                         Expanded(
-                          flex: 2,
+                          flex: 3,
                           child: _buildQuantityTypeField(),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
                     _buildPricingField(),
-                    const SizedBox(height: 30),
-                    if (_items.isNotEmpty) ...[
-                      _buildItemsList(),
-                      const SizedBox(height: 20),
-                    ],
+                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
                   ],
                 ),
               ),
@@ -82,32 +87,36 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(ResponsiveUtils.getResponsivePadding(context, 20)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
+          Text(
             'Add Items',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: ResponsiveUtils.getResponsiveFontSize(context, 18),
               fontWeight: FontWeight.w600,
               color: Colors.black87,
             ),
           ),
           GestureDetector(
             onTap: () {
-              // TODO: Implement view list functionality
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: EdgeInsets.symmetric(
+                horizontal: ResponsiveUtils.getResponsivePadding(context, 12), 
+                vertical: ResponsiveUtils.getResponsivePadding(context, 6),
+              ),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(
+                  ResponsiveUtils.getResponsiveBorderRadius(context, 6),
+                ),
               ),
               child: Text(
                 'View List',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, 14),
                   color: Colors.grey.shade600,
                 ),
               ),
@@ -122,47 +131,54 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Text(
-              'Item Name',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
+        SizedBox(
+          height: 24,
+          child: Row(
+            children: [
+              const Text(
+                'Item Name',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-            const Text(
-              '*',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.red,
+              const Text(
+                '*',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.red,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: _itemNameController,
-          decoration: InputDecoration(
-            hintText: 'Please type here',
-            hintStyle: TextStyle(
-              color: const Color(0xFF4CAF50),
-              fontSize: 14,
+        SizedBox(
+          height: 48,
+          child: TextField(
+            controller: _itemNameController,
+            onChanged: (value) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: 'Please type the item name',
+              hintStyle: TextStyle(
+                color: const Color(0xFF4CAF50),
+                fontSize: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: const Color(0xFF4CAF50)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: const Color(0xFF4CAF50)),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),
       ],
@@ -174,25 +190,25 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 36, // Fixed height for label area
+          height: 24,
           child: Row(
             children: [
-              Expanded(
+              Flexible(
                 child: Text(
                   'Total Quantity Purchased',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
                   ),
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Text(
+              Text(
                 '*',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 16,
                   color: Colors.red,
                 ),
               ),
@@ -201,15 +217,16 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
         ),
         const SizedBox(height: 8),
         SizedBox(
-          height: 48, // Fixed height for text field
+          height: 48,
           child: TextField(
             controller: _quantityController,
             keyboardType: TextInputType.number,
+            onChanged: (value) => setState(() {}),
             decoration: InputDecoration(
-              hintText: 'Please type#/ 2/200',
+              hintText: 'Please type the quantity',
               hintStyle: TextStyle(
                 color: const Color(0xFF4CAF50),
-                fontSize: 12,
+                fontSize: 14,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -236,25 +253,25 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 36, // Fixed height for label area
+          height: 24,
           child: Row(
             children: [
-              Expanded(
+              Flexible(
                 child: Text(
                   'Quantity Type',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
                   ),
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Text(
+              Text(
                 '*',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 16,
                   color: Colors.red,
                 ),
               ),
@@ -263,7 +280,7 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
         ),
         const SizedBox(height: 8),
         SizedBox(
-          height: 48, // Fixed height for dropdown field
+          height: 48,
           child: GestureDetector(
             onTap: _showQuantityTypeDropdown,
             child: Container(
@@ -280,7 +297,7 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
                     child: Text(
                       _selectedQuantityType,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 14,
                         color: _selectedQuantityType == 'Please Select' 
                             ? const Color(0xFF4CAF50) 
                             : Colors.black87,
@@ -329,12 +346,27 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
         TextField(
           controller: _pricingController,
           keyboardType: TextInputType.number,
+          onChanged: (value) => setState(() {}),
           decoration: InputDecoration(
-            hintText: 'Please type here ₹ 1000',
+            hintText: 'Please type the total pricing',
             hintStyle: TextStyle(
               color: const Color(0xFF4CAF50),
               fontSize: 14,
             ),
+            prefixIcon: _pricingController.text.isNotEmpty 
+                ? Container(
+                    width: 48,
+                    alignment: Alignment.center,
+                    child: Text(
+                      '₹',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  )
+                : null,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.grey.shade300),
@@ -354,132 +386,83 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
     );
   }
 
-  Widget _buildItemsList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Added Items',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade200),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            children: _items.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: index < _items.length - 1 
-                        ? BorderSide(color: Colors.grey.shade200) 
-                        : BorderSide.none,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item['name'],
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${item['quantity']} ${item['quantityType']} - ₹${item['price']}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => _removeItem(index),
-                      child: Icon(
-                        Icons.delete_outline,
-                        color: Colors.red.shade400,
-                        size: 20,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildBottomButtons() {
+    final bool isFormValid = _itemNameController.text.trim().isNotEmpty &&
+        _quantityController.text.trim().isNotEmpty &&
+        _selectedQuantityType != 'Please Select' &&
+        _pricingController.text.trim().isNotEmpty;
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(ResponsiveUtils.getResponsivePadding(context, 20)),
       child: Column(
         children: [
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _addItem,
+              onPressed: (isFormValid && !_isLoading) ? _addItem : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey.shade300,
-                foregroundColor: Colors.grey.shade600,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: (isFormValid && !_isLoading) ? const Color(0xFF4CAF50) : Colors.grey.shade300,
+                foregroundColor: (isFormValid && !_isLoading) ? Colors.white : Colors.grey.shade600,
+                padding: EdgeInsets.symmetric(
+                  vertical: ResponsiveUtils.getResponsivePadding(context, 16),
+                ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(
+                    ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+                  ),
                 ),
-                elevation: 0,
+                elevation: (isFormValid && !_isLoading) ? 2 : 0,
               ),
-              child: const Text(
-                'Save & New',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              child: _isLoading
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Text(
+                      'Save & New',
+                      style: TextStyle(
+                        fontSize: ResponsiveUtils.getResponsiveFontSize(context, 16),
+                        fontWeight: FontWeight.w500,
+                        color: (isFormValid && !_isLoading) ? Colors.white : Colors.grey.shade600,
+                      ),
+                    ),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 12)),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _saveAndClose,
-              style: ElevatedButton.styleFrom(
+            child: OutlinedButton(
+              onPressed: (!_isLoading) ? _saveAndClose : null,
+              style: OutlinedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(color: Colors.grey.shade300),
+                foregroundColor: (!_isLoading) ? const Color(0xFF4CAF50) : Colors.grey.shade600,
+                padding: EdgeInsets.symmetric(
+                  vertical: ResponsiveUtils.getResponsivePadding(context, 16),
                 ),
-                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+                  ),
+                ),
+                side: BorderSide(
+                  color: (!_isLoading) ? const Color(0xFF4CAF50) : Colors.grey.shade300,
+                ),
               ),
-              child: const Text(
+              child: Text(
                 'Save',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, 16),
                   fontWeight: FontWeight.w500,
+                  color: isFormValid ? const Color(0xFF4CAF50) : Colors.grey.shade400,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 12)),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
@@ -489,15 +472,19 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF4CAF50),
                 side: BorderSide(color: const Color(0xFF4CAF50)),
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(
+                  vertical: ResponsiveUtils.getResponsivePadding(context, 16),
+                ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(
+                    ResponsiveUtils.getResponsiveBorderRadius(context, 8),
+                  ),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 'Cancel',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, 16),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -511,13 +498,9 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
   void _showQuantityTypeDropdown() {
     final quantityTypes = [
       'Kg',
-      'Grams',
-      'Liters',
-      'Pieces',
-      'Packets',
-      'Boxes',
-      'Meters',
-      'Units',
+      'Litre',
+      'Unit/Piece',
+      'Gram'
     ];
 
     showModalBottomSheet(
@@ -576,59 +559,103 @@ class _AddItemsSheetState extends State<AddItemsSheet> {
     );
   }
 
-  void _addItem() {
-    if (_itemNameController.text.trim().isEmpty ||
-        _quantityController.text.trim().isEmpty ||
-        _selectedQuantityType == 'Please Select' ||
-        _pricingController.text.trim().isEmpty) {
+  void _addItem() async {
+    final tempId = widget.tempExpenseId ?? 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final item = Item(
+        id: '',
+        name: _itemNameController.text.trim(),
+        quantity: int.parse(_quantityController.text.trim()),
+        quantityType: _selectedQuantityType,
+        price: double.parse(_pricingController.text.trim()),
+        expenseId: tempId,
+        createdAt: DateTime.now(),
+      );
+
+      await _itemService.addItem(item);
+
+      // Clear form after successful save
+      setState(() {
+        _itemNameController.clear();
+        _quantityController.clear();
+        _selectedQuantityType = 'Please Select';
+        _pricingController.clear();
+        _isLoading = false;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please fill all required fields'),
+          content: Text('Item saved successfully! Will be linked when expense is created.'),
+          backgroundColor: Color(0xFF4CAF50),
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save item: $e'),
           backgroundColor: Colors.red,
         ),
       );
-      return;
-    }
-
-    setState(() {
-      _items.add({
-        'name': _itemNameController.text.trim(),
-        'quantity': _quantityController.text.trim(),
-        'quantityType': _selectedQuantityType,
-        'price': _pricingController.text.trim(),
-      });
-
-      // Clear fields for new entry
-      _itemNameController.clear();
-      _quantityController.clear();
-      _selectedQuantityType = 'Please Select';
-      _pricingController.clear();
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Item added successfully'),
-        backgroundColor: Color(0xFF4CAF50),
-      ),
-    );
-  }
-
-  void _saveAndClose() {
-    if (_items.isNotEmpty) {
-      // Calculate total quantity for return
-      int totalQuantity = _items.length;
-      Navigator.pop(context, {
-        'items': _items,
-        'totalQuantity': totalQuantity,
-      });
-    } else {
-      Navigator.pop(context);
     }
   }
 
-  void _removeItem(int index) {
-    setState(() {
-      _items.removeAt(index);
-    });
+  void _saveAndClose() async {
+    // Save any current form data if filled and close
+    if (_itemNameController.text.trim().isNotEmpty &&
+        _quantityController.text.trim().isNotEmpty &&
+        _selectedQuantityType != 'Please Select' &&
+        _pricingController.text.trim().isNotEmpty) {
+      
+      // Generate a temporary expense ID if not provided
+      final tempId = widget.tempExpenseId ?? 'temp_${DateTime.now().millisecondsSinceEpoch}';
+      
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final item = Item(
+          id: '', // Will be set by Firestore
+          name: _itemNameController.text.trim(),
+          quantity: int.parse(_quantityController.text.trim()),
+          quantityType: _selectedQuantityType,
+          price: double.parse(_pricingController.text.trim()),
+          expenseId: tempId, // Use temporary ID for now
+          createdAt: DateTime.now(),
+        );
+
+        await _itemService.addItem(item);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Item saved successfully!'),
+            backgroundColor: Color(0xFF4CAF50),
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save item: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+    }
+    
+    // Return the temporary expense ID so expense sheet can use it
+    Navigator.pop(context, widget.tempExpenseId ?? 'temp_${DateTime.now().millisecondsSinceEpoch}'); 
   }
 }

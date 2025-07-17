@@ -205,3 +205,10 @@ tramp
 
 # Web specific
 web/build/
+
+lib/templates/
+templates/
+RESPONSIVE_GUIDE.md
+**/responsive_page_template.dart
+lib/examples/expense_history_page.dart
+examples/
