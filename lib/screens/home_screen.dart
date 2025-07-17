@@ -19,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final FocusNode _textFieldFocusNode = FocusNode();
   final ExpenseService _expenseService = ExpenseService();
   final ItemService _itemService = ItemService();
+  bool _isCreatingExpense = false;
 
   @override
   void initState() {
@@ -303,7 +304,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   Builder(
                     builder: (context) => GestureDetector(
                       onTap: () {
-                        // Options button - no functionality
                       },
                       child: Container(
                         width: ResponsiveUtils.getResponsiveIconSize(context, 24),
@@ -353,7 +353,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildFloatingActionButton() {
     return FloatingActionButton(
-      onPressed: () async {
+      onPressed: _isCreatingExpense ? null : () async {
+        setState(() {
+          _isCreatingExpense = true;
+        });
+
         try {
           final expenseId = await _expenseService.createMinimalExpense();
           
@@ -362,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
             enableDrag: true,
-            isDismissible: true,
+            isDismissible: false,
             builder: (context) => ExpenseSheet(expenseId: expenseId),
           );
           
@@ -371,20 +375,39 @@ class _HomeScreenState extends State<HomeScreen> {
             await _itemService.deleteItemsByExpenseId(expenseId);
           }
         } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error creating expense: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error creating expense: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        } finally {
+          if (mounted) {
+            setState(() {
+              _isCreatingExpense = false;
+            });
+          }
         }
       },
-      backgroundColor: const Color(0xFFE91E63),
-      child: Icon(
-        Icons.add, 
-        color: Colors.white,
-        size: ResponsiveUtils.getResponsiveIconSize(context, 24),
-      ),
+      backgroundColor: _isCreatingExpense 
+          ? const Color(0xFFE91E63).withOpacity(0.7)
+          : const Color(0xFFE91E63),
+      child: _isCreatingExpense
+          ? SizedBox(
+              width: ResponsiveUtils.getResponsiveIconSize(context, 20),
+              height: ResponsiveUtils.getResponsiveIconSize(context, 20),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            )
+          : Icon(
+              Icons.add, 
+              color: Colors.white,
+              size: ResponsiveUtils.getResponsiveIconSize(context, 24),
+            ),
     );
   }
 }

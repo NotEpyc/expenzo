@@ -18,7 +18,6 @@ class ExpenseCategoryService {
       _isLoaded = true;
     }
     
-    // Sort categories by creation time in ascending order (oldest first)
     _categories.sort((a, b) {
       if (a.createdAt == null && b.createdAt == null) return 0;
       if (a.createdAt == null) return 1;
@@ -36,7 +35,6 @@ class ExpenseCategoryService {
         final data = doc.data() as Map<String, dynamic>;
         DateTime? createdAt;
         
-        // Handle Firestore Timestamp
         if (data['createdAt'] != null) {
           if (data['createdAt'] is Timestamp) {
             createdAt = (data['createdAt'] as Timestamp).toDate();
@@ -87,7 +85,6 @@ class ExpenseCategoryService {
     _categories.add(newCategory);
     await _saveCategoryToFirestore(newCategory);
     
-    // Re-sort categories after adding new one
     _categories.sort((a, b) {
       if (a.createdAt == null && b.createdAt == null) return 0;
       if (a.createdAt == null) return 1;
@@ -110,7 +107,6 @@ class ExpenseCategoryService {
   }
 
   void _saveCategories() {
-    // For future implementation with additional storage options
   }
 
   void updateCategory(String id, ExpenseCategory updatedCategory) {

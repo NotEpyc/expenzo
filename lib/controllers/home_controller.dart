@@ -67,7 +67,6 @@ class HomeController extends ChangeNotifier {
   }
 
   void onCategoryTap(String categoryId) {
-    // Handle category tap - navigate to category details or other action
     debugPrint('Category tapped: $categoryId');
   }
 

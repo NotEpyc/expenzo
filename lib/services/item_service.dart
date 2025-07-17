@@ -45,7 +45,6 @@ class ItemService {
       final querySnapshot = await _firestore
           .collection(_collection)
           .where('expenseId', isEqualTo: expenseId)
-          .orderBy('createdAt', descending: false)
           .get();
 
       return querySnapshot.docs

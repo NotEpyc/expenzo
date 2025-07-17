@@ -87,7 +87,7 @@ class ExpenseItem {
   final String name;
   final int quantity;
   final String quantityType;
-  final double? price; // Optional price field
+  final double? price;
 
   const ExpenseItem({
     required this.name,

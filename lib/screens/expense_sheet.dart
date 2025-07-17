@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'add_items_sheet.dart';
 import '../models/expense.dart';
 import '../services/expense_service.dart';
@@ -19,6 +20,8 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
   final TextEditingController _vendorController = TextEditingController();
   final TextEditingController _totalBillingController = TextEditingController();
   final TextEditingController _paidController = TextEditingController();
+  final FocusNode _categoryFocusNode = FocusNode();
+  final FocusNode _vendorFocusNode = FocusNode();
   final FocusNode _paidFocusNode = FocusNode();
   final ExpenseService _expenseService = ExpenseService();
   final ItemService _itemService = ItemService();
@@ -31,10 +34,18 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
   bool _isExpenseCompleted = false;
   double _totalItemsAmount = 0.0;
 
+  bool get _isFormValid {
+    return _categoryController.text.trim().isNotEmpty &&
+           _selectedPaymentMode != 'Please Select' &&
+           _paidController.text.trim().isNotEmpty;
+  }
+
   @override
   void initState() {
     super.initState();
     _categoryController.addListener(_onCategoryChanged);
+    _categoryController.addListener(_onFormChanged);
+    _paidController.addListener(_onFormChanged);
     _totalBillingController.text = '0.00';
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -45,10 +56,14 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
   @override
   void dispose() {
     _categoryController.removeListener(_onCategoryChanged);
+    _categoryController.removeListener(_onFormChanged);
+    _paidController.removeListener(_onFormChanged);
     _categoryController.dispose();
     _vendorController.dispose();
     _totalBillingController.dispose();
     _paidController.dispose();
+    _categoryFocusNode.dispose();
+    _vendorFocusNode.dispose();
     _paidFocusNode.dispose();
     super.dispose();
   }
@@ -59,54 +74,59 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
     });
   }
 
+  void _onFormChanged() {
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      behavior: HitTestBehavior.opaque,
       onTap: () {
         FocusScope.of(context).unfocus();
       },
       child: Container(
         height: MediaQuery.of(context).size.height * ResponsiveUtils.getModalHeight(context),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(ResponsiveUtils.getResponsiveBorderRadius(context, 20)),
-            topRight: Radius.circular(ResponsiveUtils.getResponsiveBorderRadius(context, 20)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(ResponsiveUtils.getResponsiveBorderRadius(context, 20)),
+              topRight: Radius.circular(ResponsiveUtils.getResponsiveBorderRadius(context, 20)),
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(ResponsiveUtils.getResponsivePadding(context, 20)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDateField(),
-                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
-                    _buildCategoryField(),
-                    if (_showVendorField) ...[
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(ResponsiveUtils.getResponsivePadding(context, 20)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDateField(),
                       SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
-                      _buildVendorField(),
+                      _buildCategoryField(),
+                      if (_showVendorField) ...[
+                        SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
+                        _buildVendorField(),
+                      ],
+                      SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
+                      _buildAddItemButton(),
+                      SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
+                      _buildTotalBillingField(),
+                      SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
+                      _buildPaidField(),
+                      SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
+                      _buildPaymentModeField(),
+                      SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
+                      _buildUploadInvoiceField(),
+                      SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 40)),
                     ],
-                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
-                    _buildAddItemButton(),
-                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
-                    _buildTotalBillingField(),
-                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
-                    _buildPaidField(),
-                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
-                    _buildPaymentModeField(),
-                    SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 40)),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            _buildBottomButtons(),
-          ],
-        ),
+              _buildBottomButtons(),
+            ],
+          ),
       ),
     );
   }
@@ -153,7 +173,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 2),
         GestureDetector(
           onTap: _selectDate,
           child: Container(
@@ -211,6 +231,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
         const SizedBox(height: 8),
         TextField(
           controller: _categoryController,
+          focusNode: _categoryFocusNode,
           decoration: InputDecoration(
             hintText: 'Please type here',
             hintStyle: TextStyle(
@@ -263,6 +284,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
         const SizedBox(height: 8),
         TextField(
           controller: _vendorController,
+          focusNode: _vendorFocusNode,
           decoration: InputDecoration(
             hintText: 'Please type here',
             hintStyle: TextStyle(
@@ -308,15 +330,15 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                 border: Border.all(color: const Color(0xFF4CAF50), width: 1.5),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Icon(
-                Icons.add,
+              child: Icon(
+                _totalItemsAmount > 0 ? Icons.edit : Icons.add,
                 color: Color(0xFF4CAF50),
                 size: 14,
               ),
             ),
             const SizedBox(width: 8),
             Text(
-              'Add Items',
+              _totalItemsAmount > 0 ? 'Edit/View/Add Item' : 'Add Items',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -345,13 +367,10 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                 ),
               ),
               const SizedBox(width: 8),
-              GestureDetector(
-                onTap: _updateTotalBillingFromItems,
-                child: Icon(
-                  Icons.refresh,
-                  size: 18,
-                  color: const Color(0xFF4CAF50),
-                ),
+              Icon(
+                Icons.info_outline,
+                size: 18,
+                color: const Color(0xFF4CAF50),
               ),
             ],
           ),
@@ -543,6 +562,39 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
     );
   }
 
+  Widget _buildUploadInvoiceField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Upload Invoice/Images',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: _openGallery,
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: const Color(0xFF4CAF50),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.add,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildBottomButtons() {
     return Container(
       padding: EdgeInsets.all(ResponsiveUtils.getResponsivePadding(context, 20)),
@@ -551,12 +603,12 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: (_isSubmitting || _isExpenseCompleted) ? null : _submitExpense,
+              onPressed: (_isSubmitting || _isExpenseCompleted || !_isFormValid) ? null : _submitExpense,
               style: ElevatedButton.styleFrom(
-                backgroundColor: (_isSubmitting || _isExpenseCompleted)
+                backgroundColor: (_isSubmitting || _isExpenseCompleted || !_isFormValid)
                     ? Colors.grey.shade300 
                     : const Color(0xFF4CAF50),
-                foregroundColor: (_isSubmitting || _isExpenseCompleted)
+                foregroundColor: (_isSubmitting || _isExpenseCompleted || !_isFormValid)
                     ? Colors.grey.shade600 
                     : Colors.white,
                 padding: EdgeInsets.symmetric(
@@ -567,7 +619,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                     ResponsiveUtils.getResponsiveBorderRadius(context, 8),
                   ),
                 ),
-                elevation: (_isSubmitting || _isExpenseCompleted) ? 0 : 2,
+                elevation: (_isSubmitting || _isExpenseCompleted || !_isFormValid) ? 0 : 2,
               ),
               child: _isSubmitting
                   ? Row(
@@ -652,10 +704,166 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: const Color(0xFF4CAF50),
+              primary: Colors.blue,
               onPrimary: Colors.white,
               surface: Colors.white,
-              onSurface: Colors.black,
+              onSurface: Colors.black87,
+              onSurfaceVariant: Colors.grey.shade600,
+              outline: Colors.transparent,
+              secondary: const Color(0xFF4CAF50),
+              onSecondary: Colors.white,
+            ),
+            textTheme: TextTheme(
+              headlineMedium: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w400,
+                color: Colors.black87,
+              ),
+              titleMedium: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+              bodyLarge: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: Colors.black87,
+              ),
+              bodyMedium: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: Colors.black87,
+              ),
+              labelLarge: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+              ),
+            ),
+            iconTheme: IconThemeData(
+              color: const Color(0xFF4CAF50),
+            ),
+            dialogTheme: DialogTheme(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              backgroundColor: Colors.white,
+              elevation: 8,
+              titleTextStyle: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+              contentTextStyle: TextStyle(
+                fontSize: 16,
+                color: Colors.black87,
+              ),
+              actionsPadding: const EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                top: 8,
+              ),
+            ),
+            datePickerTheme: DatePickerThemeData(
+              backgroundColor: Colors.white,
+              headerBackgroundColor: Colors.white,
+              headerForegroundColor: Colors.black87,
+              dividerColor: Colors.transparent,
+              weekdayStyle: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade700,
+              ),
+              dayStyle: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: Colors.black87,
+              ),
+              dayForegroundColor: MaterialStateProperty.resolveWith((states) {
+                if (states.contains(MaterialState.selected)) {
+                  return Colors.white;
+                }
+                if (states.contains(MaterialState.disabled)) {
+                  return Colors.grey.shade400;
+                }
+                return Colors.black87;
+              }),
+              dayBackgroundColor: MaterialStateProperty.resolveWith((states) {
+                if (states.contains(MaterialState.selected)) {
+                  return const Color(0xFFE91E63);
+                }
+                return Colors.transparent;
+              }),
+              todayForegroundColor: MaterialStateProperty.resolveWith((states) {
+                if (states.contains(MaterialState.selected)) {
+                  return Colors.white;
+                }
+                return const Color(0xFFE91E63);
+              }),
+              todayBackgroundColor: MaterialStateProperty.resolveWith((states) {
+                if (states.contains(MaterialState.selected)) {
+                  return const Color(0xFFE91E63);
+                }
+                return Colors.transparent;
+              }),
+              todayBorder: BorderSide(
+                color: const Color(0xFFE91E63),
+                width: 1.5,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              rangeSelectionBackgroundColor: const Color(0xFFE91E63).withOpacity(0.1),
+              rangeSelectionOverlayColor: MaterialStateProperty.all(
+                const Color(0xFFE91E63).withOpacity(0.1),
+              ),
+              surfaceTintColor: Colors.transparent,
+              shadowColor: Colors.black.withOpacity(0.1),
+              elevation: 8,
+            ),
+            filledButtonTheme: FilledButtonThemeData(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
           ),
           child: child!,
@@ -741,13 +949,159 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
     );
   }
 
+  void _openGallery() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Select Image Source',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: Icon(
+                  Icons.photo_library,
+                  color: const Color(0xFF4CAF50),
+                ),
+                title: const Text(
+                  'Gallery',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromGallery();
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.camera_alt,
+                  color: const Color(0xFF4CAF50),
+                ),
+                title: const Text(
+                  'Camera',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromCamera();
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _pickImageFromGallery() async {
+    PermissionStatus permission = await Permission.photos.request();
+    
+    if (permission == PermissionStatus.granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gallery access granted - picker will be implemented'),
+          backgroundColor: Color(0xFF4CAF50),
+        ),
+      );
+    } else if (permission == PermissionStatus.denied) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gallery permission denied'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } else if (permission == PermissionStatus.permanentlyDenied) {
+      _showPermissionDeniedDialog();
+    }
+  }
+
+  void _pickImageFromCamera() async {
+    PermissionStatus permission = await Permission.camera.request();
+    
+    if (permission == PermissionStatus.granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Camera access granted - picker will be implemented'),
+          backgroundColor: Color(0xFF4CAF50),
+        ),
+      );
+    } else if (permission == PermissionStatus.denied) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Camera permission denied'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } else if (permission == PermissionStatus.permanentlyDenied) {
+      _showPermissionDeniedDialog();
+    }
+  }
+
+  void _showPermissionDeniedDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: const Text('Permission Required'),
+        content: const Text(
+          'This app needs access to your gallery and camera to upload invoice images. Please grant permission in app settings.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.black)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              openAppSettings();
+            },
+            child: const Text('Open Settings', style: TextStyle(color: Color(0xFF4CAF50))),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _openAddItemsSheet() async {
     final result = await showModalBottomSheet<dynamic>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       enableDrag: true,
-      isDismissible: true,
+      isDismissible: false,
       builder: (context) => AddItemsSheet(tempExpenseId: widget.expenseId),
     );
 
@@ -772,7 +1126,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       enableDrag: true,
-      isDismissible: true,
+      isDismissible: false,
       builder: (context) => AddItemsSheet(tempExpenseId: expenseId),
     );
 
@@ -917,6 +1271,8 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
           extentOffset: _paidController.text.length,
         );
       });
+    } else {
+      _paidFocusNode.unfocus();
     }
   }
 
