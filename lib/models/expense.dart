@@ -4,9 +4,12 @@ class Expense {
   final String categoryName;
   final String? vendorName;
   final List<ExpenseItem> items;
+  final List<String> itemIds;
   final double totalBilling;
   final double paid;
   final String paymentMode;
+  final String? notes;
+  final String? imageUrl;
   final DateTime? createdAt;
 
   const Expense({
@@ -15,9 +18,12 @@ class Expense {
     required this.categoryName,
     this.vendorName,
     required this.items,
+    this.itemIds = const [],
     required this.totalBilling,
     required this.paid,
     required this.paymentMode,
+    this.notes,
+    this.imageUrl,
     this.createdAt,
   });
 
@@ -27,9 +33,12 @@ class Expense {
     String? categoryName,
     String? vendorName,
     List<ExpenseItem>? items,
+    List<String>? itemIds,
     double? totalBilling,
     double? paid,
     String? paymentMode,
+    String? notes,
+    String? imageUrl,
     DateTime? createdAt,
   }) {
     return Expense(
@@ -38,9 +47,12 @@ class Expense {
       categoryName: categoryName ?? this.categoryName,
       vendorName: vendorName ?? this.vendorName,
       items: items ?? this.items,
+      itemIds: itemIds ?? this.itemIds,
       totalBilling: totalBilling ?? this.totalBilling,
       paid: paid ?? this.paid,
       paymentMode: paymentMode ?? this.paymentMode,
+      notes: notes ?? this.notes,
+      imageUrl: imageUrl ?? this.imageUrl,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -52,9 +64,12 @@ class Expense {
       'categoryName': categoryName,
       'vendorName': vendorName,
       'items': items.map((item) => item.toJson()).toList(),
+      'itemIds': itemIds,
       'totalBilling': totalBilling,
       'paid': paid,
       'paymentMode': paymentMode,
+      'notes': notes,
+      'imageUrl': imageUrl,
       'createdAt': createdAt?.millisecondsSinceEpoch,
     };
   }
@@ -68,9 +83,14 @@ class Expense {
       items: (json['items'] as List<dynamic>)
           .map((item) => ExpenseItem.fromJson(item as Map<String, dynamic>))
           .toList(),
+      itemIds: json['itemIds'] != null 
+          ? List<String>.from(json['itemIds'] as List)
+          : [],
       totalBilling: (json['totalBilling'] as num).toDouble(),
       paid: (json['paid'] as num).toDouble(),
       paymentMode: json['paymentMode'] as String,
+      notes: json['notes'] as String?,
+      imageUrl: json['imageUrl'] as String?,
       createdAt: json['createdAt'] != null 
           ? DateTime.fromMillisecondsSinceEpoch(json['createdAt'] as int)
           : null,
@@ -79,7 +99,7 @@ class Expense {
 
   @override
   String toString() {
-    return 'Expense(id: $id, date: $date, categoryName: $categoryName, vendorName: $vendorName, items: $items, totalBilling: $totalBilling, paid: $paid, paymentMode: $paymentMode, createdAt: $createdAt)';
+    return 'Expense(id: $id, date: $date, categoryName: $categoryName, vendorName: $vendorName, items: $items, itemIds: $itemIds, totalBilling: $totalBilling, paid: $paid, paymentMode: $paymentMode, notes: $notes, createdAt: $createdAt)';
   }
 }
 

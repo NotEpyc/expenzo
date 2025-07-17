@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:io';
 import 'add_items_sheet.dart';
 import '../models/expense.dart';
 import '../services/expense_service.dart';
 import '../services/item_service.dart';
 import '../utils/responsive_utils.dart';
+import '../config/api_keys.dart';
 
 class ExpenseSheet extends StatefulWidget {
   final String expenseId;
@@ -20,9 +25,11 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
   final TextEditingController _vendorController = TextEditingController();
   final TextEditingController _totalBillingController = TextEditingController();
   final TextEditingController _paidController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
   final FocusNode _categoryFocusNode = FocusNode();
   final FocusNode _vendorFocusNode = FocusNode();
   final FocusNode _paidFocusNode = FocusNode();
+  final FocusNode _notesFocusNode = FocusNode();
   final ExpenseService _expenseService = ExpenseService();
   final ItemService _itemService = ItemService();
   
@@ -33,6 +40,9 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
   bool _isSubmitting = false;
   bool _isExpenseCompleted = false;
   double _totalItemsAmount = 0.0;
+  String? _uploadedImageUrl;
+  bool _isImageUploading = false;
+  final ImagePicker _picker = ImagePicker();
 
   bool get _isFormValid {
     return _categoryController.text.trim().isNotEmpty &&
@@ -62,9 +72,11 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
     _vendorController.dispose();
     _totalBillingController.dispose();
     _paidController.dispose();
+    _notesController.dispose();
     _categoryFocusNode.dispose();
     _vendorFocusNode.dispose();
     _paidFocusNode.dispose();
+    _notesFocusNode.dispose();
     super.dispose();
   }
 
@@ -119,6 +131,8 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                       _buildPaymentModeField(),
                       SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
                       _buildUploadInvoiceField(),
+                      SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 20)),
+                      _buildNotesField(),
                       SizedBox(height: ResponsiveUtils.getResponsiveSpacing(context, 40)),
                     ],
                   ),
@@ -180,7 +194,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -239,15 +253,15 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
               fontSize: 14,
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: const Color(0xFF4CAF50)),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -292,15 +306,15 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
               fontSize: 14,
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: const Color(0xFF4CAF50)),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -318,7 +332,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           border: Border.all(color: const Color(0xFF4CAF50)),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -536,7 +550,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -575,20 +589,141 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
           ),
         ),
         const SizedBox(height: 8),
-        GestureDetector(
-          onTap: _openGallery,
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: const Color(0xFF4CAF50),
-              borderRadius: BorderRadius.circular(8),
+        Row(
+          children: [
+            GestureDetector(
+              onTap: _isImageUploading ? null : _openGallery,
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: _isImageUploading 
+                      ? Colors.grey.shade300 
+                      : const Color(0xFF4CAF50),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: _isImageUploading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.add,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+              ),
             ),
-            child: const Icon(
-              Icons.add,
-              color: Colors.white,
-              size: 24,
+            if (_uploadedImageUrl != null) ...[
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    border: Border.all(color: Colors.green.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        color: Colors.green.shade600,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Image uploaded successfully',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _uploadedImageUrl = null;
+                          });
+                        },
+                        child: Icon(
+                          Icons.close,
+                          color: Colors.grey.shade600,
+                          size: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNotesField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Notes',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
             ),
+            const SizedBox(width: 4),
+            Text(
+              '(if any)',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _notesController,
+          focusNode: _notesFocusNode,
+          minLines: 1,
+          maxLines: 6,
+          keyboardType: TextInputType.multiline,
+          textInputAction: TextInputAction.newline,
+          decoration: InputDecoration(
+            hintText: 'Description',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            alignLabelWithHint: true,
+          ),
+          style: const TextStyle(
+            fontSize: 16,
+            color: Colors.black87,
           ),
         ),
       ],
@@ -615,9 +750,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                   vertical: ResponsiveUtils.getResponsivePadding(context, 16),
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    ResponsiveUtils.getResponsiveBorderRadius(context, 8),
-                  ),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: (_isSubmitting || _isExpenseCompleted || !_isFormValid) ? 0 : 2,
               ),
@@ -674,9 +807,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                   vertical: ResponsiveUtils.getResponsivePadding(context, 16),
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    ResponsiveUtils.getResponsiveBorderRadius(context, 8),
-                  ),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
               child: Text(
@@ -1029,12 +1160,25 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
     PermissionStatus permission = await Permission.photos.request();
     
     if (permission == PermissionStatus.granted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Gallery access granted - picker will be implemented'),
-          backgroundColor: Color(0xFF4CAF50),
-        ),
-      );
+      try {
+        final XFile? image = await _picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+        );
+        
+        if (image != null) {
+          await _uploadImageToImgBB(File(image.path));
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } else if (permission == PermissionStatus.denied) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1051,12 +1195,25 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
     PermissionStatus permission = await Permission.camera.request();
     
     if (permission == PermissionStatus.granted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Camera access granted - picker will be implemented'),
-          backgroundColor: Color(0xFF4CAF50),
-        ),
-      );
+      try {
+        final XFile? image = await _picker.pickImage(
+          source: ImageSource.camera,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+        );
+        
+        if (image != null) {
+          await _uploadImageToImgBB(File(image.path));
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to take photo: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } else if (permission == PermissionStatus.denied) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1066,6 +1223,56 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
       );
     } else if (permission == PermissionStatus.permanentlyDenied) {
       _showPermissionDeniedDialog();
+    }
+  }
+
+  Future<void> _uploadImageToImgBB(File imageFile) async {
+    setState(() {
+      _isImageUploading = true;
+    });
+
+    try {
+      final base64Image = base64Encode(imageFile.readAsBytesSync());
+      final response = await http.post(
+        Uri.parse(ApiKeys.getImgbbUploadUrl()),
+        body: {
+          'image': base64Image,
+          'name': 'flutter_upload',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        if (responseData['success'] == true) {
+          final imageUrl = responseData['data']['url'];
+          setState(() {
+            _uploadedImageUrl = imageUrl;
+            _isImageUploading = false;
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Image uploaded successfully!'),
+              backgroundColor: Color(0xFF4CAF50),
+            ),
+          );
+        } else {
+          throw Exception('Upload failed: ${responseData['error']['message']}');
+        }
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      setState(() {
+        _isImageUploading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to upload image: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -1198,6 +1405,14 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
     });
 
     try {
+      List<String> itemIds = [];
+      try {
+        final items = await _itemService.getItemsByExpenseId(widget.expenseId);
+        itemIds = items.map((item) => item.id).toList();
+      } catch (e) {
+        print('Could not fetch item IDs: $e');
+      }
+
       final expense = Expense(
         id: widget.expenseId,
         date: _selectedDate,
@@ -1206,9 +1421,14 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
             ? _vendorController.text.trim() 
             : null,
         items: [],
+        itemIds: itemIds,
         totalBilling: totalBilling,
         paid: paid,
         paymentMode: _selectedPaymentMode,
+        notes: _notesController.text.trim().isNotEmpty 
+            ? _notesController.text.trim() 
+            : null,
+        imageUrl: _uploadedImageUrl,
       );
 
       await _expenseService.updateExpense(widget.expenseId, expense);

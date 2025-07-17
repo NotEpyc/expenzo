@@ -16,9 +16,11 @@ class ExpenseService {
         'categoryName': expense.categoryName,
         'vendorName': expense.vendorName,
         'items': expense.items.map((item) => item.toJson()).toList(),
+        'itemIds': expense.itemIds,
         'totalBilling': expense.totalBilling,
         'paid': expense.paid,
         'paymentMode': expense.paymentMode,
+        'notes': expense.notes,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
@@ -42,6 +44,7 @@ class ExpenseService {
         'totalBilling': expense.totalBilling,
         'paid': expense.paid,
         'paymentMode': expense.paymentMode,
+        'notes': expense.notes,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
@@ -130,15 +133,22 @@ class ExpenseService {
               .toList();
         }
 
+        List<String> itemIds = [];
+        if (data['itemIds'] is List) {
+          itemIds = List<String>.from(data['itemIds'] as List);
+        }
+
         return Expense(
           id: doc.id,
           date: date,
           categoryName: data['categoryName'] ?? '',
           vendorName: data['vendorName'],
           items: items,
+          itemIds: itemIds,
           totalBilling: (data['totalBilling'] as num?)?.toDouble() ?? 0.0,
           paid: (data['paid'] as num?)?.toDouble() ?? 0.0,
           paymentMode: data['paymentMode'] ?? '',
+          notes: data['notes'],
           createdAt: createdAt,
         );
       }).toList();
@@ -183,15 +193,22 @@ class ExpenseService {
               .toList();
         }
 
+        List<String> itemIds = [];
+        if (data['itemIds'] is List) {
+          itemIds = List<String>.from(data['itemIds'] as List);
+        }
+
         return Expense(
           id: doc.id,
           date: date,
           categoryName: data['categoryName'] ?? '',
           vendorName: data['vendorName'],
           items: items,
+          itemIds: itemIds,
           totalBilling: (data['totalBilling'] as num?)?.toDouble() ?? 0.0,
           paid: (data['paid'] as num?)?.toDouble() ?? 0.0,
           paymentMode: data['paymentMode'] ?? '',
+          notes: data['notes'],
           createdAt: createdAt,
         );
       }).toList();
@@ -207,9 +224,11 @@ class ExpenseService {
         'categoryName': expense.categoryName,
         'vendorName': expense.vendorName,
         'items': expense.items.map((item) => item.toJson()).toList(),
+        'itemIds': expense.itemIds,
         'totalBilling': expense.totalBilling,
         'paid': expense.paid,
         'paymentMode': expense.paymentMode,
+        'notes': expense.notes,
         'isComplete': true,
       };
 

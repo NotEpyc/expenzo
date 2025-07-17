@@ -73,10 +73,16 @@ firebase_options.dart
 
 # API Keys and credentials
 api_keys.dart
+**/lib/config
 secrets.dart
 credentials.json
 service-account-key.json
 firebase-adminsdk-*.json
+
+# Image upload service credentials
+imgbb_config.dart
+*imgbb*.key
+*imgbb*.json
 
 # Local configuration files
 local.properties
