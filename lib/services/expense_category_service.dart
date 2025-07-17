@@ -17,6 +17,15 @@ class ExpenseCategoryService {
       await _loadCategoriesFromFirestore();
       _isLoaded = true;
     }
+    
+    // Sort categories by creation time in ascending order (oldest first)
+    _categories.sort((a, b) {
+      if (a.createdAt == null && b.createdAt == null) return 0;
+      if (a.createdAt == null) return 1;
+      if (b.createdAt == null) return -1;
+      return a.createdAt!.compareTo(b.createdAt!);
+    });
+    
     return List.from(_categories);
   }
 
@@ -25,31 +34,66 @@ class ExpenseCategoryService {
       final QuerySnapshot snapshot = await _firestore.collection(_collectionName).get();
       _categories = snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
+        DateTime? createdAt;
+        
+        // Handle Firestore Timestamp
+        if (data['createdAt'] != null) {
+          if (data['createdAt'] is Timestamp) {
+            createdAt = (data['createdAt'] as Timestamp).toDate();
+          } else if (data['createdAt'] is int) {
+            createdAt = DateTime.fromMillisecondsSinceEpoch(data['createdAt']);
+          }
+        }
+        
         return ExpenseCategory(
           id: doc.id,
           name: data['name'] ?? '',
           hasIcon: data['hasIcon'] ?? false,
           isCompleted: data['isCompleted'] ?? false,
+          createdAt: createdAt,
         );
       }).toList();
     } catch (e) {
+      final now = DateTime.now();
       _categories = [
-        const ExpenseCategory(id: 'local_1', name: 'Grocery', hasIcon: true, isCompleted: false),
-        const ExpenseCategory(id: 'local_2', name: 'Utilities', hasIcon: true, isCompleted: false),
+        ExpenseCategory(
+          id: 'local_1', 
+          name: 'Grocery', 
+          hasIcon: true, 
+          isCompleted: false,
+          createdAt: now.subtract(const Duration(minutes: 2)),
+        ),
+        ExpenseCategory(
+          id: 'local_2', 
+          name: 'Utilities', 
+          hasIcon: true, 
+          isCompleted: false,
+          createdAt: now.subtract(const Duration(minutes: 1)),
+        ),
       ];
     }
   }
 
   Future<void> addCategory(ExpenseCategory category) async {
+    final now = DateTime.now();
     final newCategory = ExpenseCategory(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: now.millisecondsSinceEpoch.toString(),
       name: category.name,
       hasIcon: category.hasIcon,
       isCompleted: category.isCompleted,
+      createdAt: now,
     );
     
     _categories.add(newCategory);
     await _saveCategoryToFirestore(newCategory);
+    
+    // Re-sort categories after adding new one
+    _categories.sort((a, b) {
+      if (a.createdAt == null && b.createdAt == null) return 0;
+      if (a.createdAt == null) return 1;
+      if (b.createdAt == null) return -1;
+      return a.createdAt!.compareTo(b.createdAt!);
+    });
   }
 
   Future<void> _saveCategoryToFirestore(ExpenseCategory category) async {

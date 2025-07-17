@@ -100,15 +100,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTabBar() {
     return Container(
       color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
         children: [
           Expanded(
+            flex: 2,
             child: _buildTab('Sales', 0),
           ),
           Expanded(
+            flex: 2,
             child: _buildTab('Expense', 1),
           ),
           Expanded(
+            flex: 3,
             child: _buildTab('Money Management', 2),
           ),
         ],
@@ -126,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _controller.changeTab(index);
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
@@ -138,9 +142,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Text(
               title,
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: isSelected ? const Color(0xFFE91E63) : Colors.grey.shade600,
-                fontSize: 14,
+                fontSize: index == 2 ? 12 : 14, // Smaller font for "Money Management"
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -238,85 +244,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showOptionsMenu(BuildContext context, ExpenseCategory category) {
-    final RenderBox renderBox = context.findRenderObject() as RenderBox;
-    final position = renderBox.localToGlobal(Offset.zero);
-    final size = renderBox.size;
-    
-    showMenu(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        position.dx,
-        position.dy + size.height,
-        position.dx + 120,
-        position.dy + size.height + 100,
-      ),
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      useRootNavigator: true,
-      items: [
-        PopupMenuItem(
-          value: 'edit',
-          child: Row(
-            children: [
-              Icon(
-                Icons.edit_outlined,
-                size: 18,
-                color: Colors.grey.shade600,
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Edit',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(
-                Icons.delete_outline,
-                size: 18,
-                color: Colors.red.shade400,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Delete',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.red.shade400,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ).then((value) {
-      if (value == 'edit') {
-        _editCategory(category);
-      } else if (value == 'delete') {
-        _deleteCategory(category);
-      }
-    });
-  }
-
-  void _editCategory(ExpenseCategory category) {
-    // TODO: Implement edit functionality
-    debugPrint('Edit category: ${category.name}');
-  }
-
-  void _deleteCategory(ExpenseCategory category) {
-    _controller.deleteCategory(category.id);
-  }
-
   Widget _buildCategoryItem(ExpenseCategory category) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -339,7 +266,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (category.hasIcon && category.isCompleted) ...[
                   Builder(
                     builder: (context) => GestureDetector(
-                      onTap: () => _showOptionsMenu(context, category),
+                      onTap: () {
+                        // Options button - no functionality
+                      },
                       child: Container(
                         width: 24,
                         height: 24,

@@ -3,12 +3,14 @@ class ExpenseCategory {
   final String name;
   final bool hasIcon;
   final bool isCompleted;
+  final DateTime? createdAt;
 
   const ExpenseCategory({
     required this.id,
     required this.name,
     this.hasIcon = false,
     this.isCompleted = false,
+    this.createdAt,
   });
 
   ExpenseCategory copyWith({
@@ -16,12 +18,14 @@ class ExpenseCategory {
     String? name,
     bool? hasIcon,
     bool? isCompleted,
+    DateTime? createdAt,
   }) {
     return ExpenseCategory(
       id: id ?? this.id,
       name: name ?? this.name,
       hasIcon: hasIcon ?? this.hasIcon,
       isCompleted: isCompleted ?? this.isCompleted,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
@@ -31,6 +35,7 @@ class ExpenseCategory {
       'name': name,
       'hasIcon': hasIcon,
       'isCompleted': isCompleted,
+      'createdAt': createdAt?.millisecondsSinceEpoch,
     };
   }
 
@@ -40,6 +45,9 @@ class ExpenseCategory {
       name: json['name'] as String,
       hasIcon: json['hasIcon'] as bool? ?? false,
       isCompleted: json['isCompleted'] as bool? ?? false,
+      createdAt: json['createdAt'] != null 
+          ? DateTime.fromMillisecondsSinceEpoch(json['createdAt'] as int)
+          : null,
     );
   }
 }

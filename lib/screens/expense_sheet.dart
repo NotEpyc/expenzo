@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'add_items_sheet.dart';
 
 class ExpenseSheet extends StatefulWidget {
   const ExpenseSheet({super.key});
@@ -15,6 +16,8 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
   DateTime _selectedDate = DateTime.now();
   String _selectedPaymentMode = 'Please Select';
   bool _showVendorField = false;
+  int _totalItemQuantity = 0;
+  bool _isTotalBillingEditable = false;
 
   @override
   void initState() {
@@ -40,46 +43,52 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildDateField(),
-                  const SizedBox(height: 20),
-                  _buildCategoryField(),
-                  if (_showVendorField) ...[
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDateField(),
                     const SizedBox(height: 20),
-                    _buildVendorField(),
+                    _buildCategoryField(),
+                    if (_showVendorField) ...[
+                      const SizedBox(height: 20),
+                      _buildVendorField(),
+                    ],
+                    const SizedBox(height: 20),
+                    _buildAddItemButton(),
+                    const SizedBox(height: 20),
+                    _buildTotalBillingField(),
+                    const SizedBox(height: 20),
+                    _buildPaidField(),
+                    const SizedBox(height: 20),
+                    _buildPaymentModeField(),
+                    const SizedBox(height: 40),
                   ],
-                  const SizedBox(height: 20),
-                  _buildAddItemButton(),
-                  const SizedBox(height: 20),
-                  _buildTotalBillingField(),
-                  const SizedBox(height: 20),
-                  _buildPaidField(),
-                  const SizedBox(height: 20),
-                  _buildPaymentModeField(),
-                  const SizedBox(height: 40),
-                ],
+                ),
               ),
             ),
-          ),
-          _buildBottomButtons(),
-        ],
+            _buildBottomButtons(),
+          ],
+        ),
       ),
     );
   }
@@ -262,39 +271,42 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
   }
 
   Widget _buildAddItemButton() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF4CAF50)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFF4CAF50), width: 1.5),
-              borderRadius: BorderRadius.circular(4),
+    return GestureDetector(
+      onTap: _openAddItemsSheet,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFF4CAF50)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFF4CAF50), width: 1.5),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Icon(
+                Icons.add,
+                color: Color(0xFF4CAF50),
+                size: 14,
+              ),
             ),
-            child: const Icon(
-              Icons.add,
-              color: Color(0xFF4CAF50),
-              size: 14,
+            const SizedBox(width: 8),
+            Text(
+              _totalItemQuantity > 0 ? 'Add Item ($_totalItemQuantity)' : 'Add Item',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF4CAF50),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Add Item',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF4CAF50),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -317,8 +329,8 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
               const SizedBox(width: 8),
               Icon(
                 Icons.info_outline,
-                size: 16,
-                color: Colors.grey.shade500,
+                size: 18,
+                color: const Color(0xFF4CAF50),
               ),
             ],
           ),
@@ -341,6 +353,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                 child: TextField(
                   controller: _totalBillingController,
                   keyboardType: TextInputType.number,
+                  enabled: _isTotalBillingEditable,
                   decoration: InputDecoration(
                     hintText: '0.00',
                     hintStyle: TextStyle(
@@ -356,20 +369,26 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                     focusedBorder: UnderlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue),
                     ),
+                    disabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
-                    color: Colors.blue,
+                    color: _isTotalBillingEditable ? Colors.blue : Colors.grey.shade600,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(
-                Icons.edit,
-                size: 16,
-                color: Colors.grey.shade500,
+              GestureDetector(
+                onTap: _toggleTotalBillingEditing,
+                child: Icon(
+                  _isTotalBillingEditable ? Icons.check : Icons.edit,
+                  size: 18,
+                  color: const Color(0xFF4CAF50),
+                ),
               ),
             ],
           ),
@@ -465,30 +484,33 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
           ],
         ),
         const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _selectedPaymentMode,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: _selectedPaymentMode == 'Please Select' 
-                      ? const Color(0xFF4CAF50) 
-                      : Colors.black87,
+        GestureDetector(
+          onTap: _showPaymentModeDropdown,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _selectedPaymentMode,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: _selectedPaymentMode == 'Please Select' 
+                        ? const Color(0xFF4CAF50) 
+                        : Colors.black87,
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.keyboard_arrow_down,
-                color: Colors.grey.shade600,
-              ),
-            ],
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Colors.grey.shade600,
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -586,5 +608,102 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return '${date.day.toString().padLeft(2, '0')}-${months[date.month - 1]}-${date.year}';
+  }
+
+  void _showPaymentModeDropdown() {
+    final paymentOptions = [
+      'Cash',
+      'UPI',
+      'Debit/Credit Card',
+      'NEFT/RTGS',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Select Payment Mode',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ...paymentOptions.map((option) => ListTile(
+                title: Text(
+                  option,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                ),
+                onTap: () {
+                  setState(() {
+                    _selectedPaymentMode = option;
+                  });
+                  Navigator.pop(context);
+                },
+              )),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _openAddItemsSheet() async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      enableDrag: true,
+      isDismissible: true,
+      builder: (context) => const AddItemsSheet(),
+    );
+
+    if (result != null && result['totalQuantity'] != null) {
+      setState(() {
+        _totalItemQuantity = result['totalQuantity'];
+      });
+    }
+  }
+
+  void _toggleTotalBillingEditing() {
+    setState(() {
+      _isTotalBillingEditable = !_isTotalBillingEditable;
+      if (_isTotalBillingEditable) {
+        // Focus and select all text when enabling editing
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _totalBillingController.selection = TextSelection(
+            baseOffset: 0,
+            extentOffset: _totalBillingController.text.length,
+          );
+          FocusScope.of(context).requestFocus(FocusNode());
+        });
+      }
+    });
   }
 }
