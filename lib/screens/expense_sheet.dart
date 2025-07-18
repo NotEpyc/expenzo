@@ -34,6 +34,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
   final ItemService _itemService = ItemService();
   
   DateTime _selectedDate = DateTime.now();
+  DateTime _expenseCreatedAt = DateTime.now();
   String _selectedPaymentMode = 'Please Select';
   bool _showVendorField = false;
   bool _isPaidEditable = false;
@@ -338,16 +339,19 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 20,
-              height: 20,
+              width: 25,
+              height: 25,
               decoration: BoxDecoration(
+                color: Colors.white,
                 border: Border.all(color: const Color(0xFF4CAF50), width: 1.5),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(5),
               ),
-              child: Icon(
-                _totalItemsAmount > 0 ? Icons.edit : Icons.add,
-                color: Color(0xFF4CAF50),
-                size: 14,
+              child: Center(
+                child: Icon(
+                  _totalItemsAmount > 0 ? Icons.edit : Icons.add,
+                  color: Color(0xFF4CAF50),
+                  size: 14,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -381,10 +385,13 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(
-                Icons.info_outline,
-                size: 18,
-                color: const Color(0xFF4CAF50),
+              GestureDetector(
+                onTap: _showViewHistory,
+                child: Icon(
+                  Icons.info_outline,
+                  size: 18,
+                  color: const Color(0xFF4CAF50),
+                ),
               ),
             ],
           ),
@@ -591,123 +598,125 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
         const SizedBox(height: 8),
         Row(
           children: [
-            // Display uploaded images on the left
-            if (_uploadedImageUrls.isNotEmpty) ...[
-              Expanded(
-                child: SizedBox(
-                  height: 60,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _uploadedImageUrls.length,
-                    separatorBuilder: (context, index) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      return Stack(
-                        children: [
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(15),
-                              child: Image.network(
-                                _uploadedImageUrls[index],
-                                width: 60,
-                                height: 60,
-                                fit: BoxFit.cover,
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return Container(
-                                    width: 60,
-                                    height: 60,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                    child: const Center(
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    ),
-                                  );
-                                },
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    width: 60,
-                                    height: 60,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade200,
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                    child: Icon(
-                                      Icons.error_outline,
-                                      color: Colors.grey.shade600,
-                                      size: 24,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          // Remove button
-                          Positioned(
-                            top: -4,
-                            right: -4,
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _uploadedImageUrls.removeAt(index);
-                                });
-                              },
-                              child: Container(
-                                width: 20,
-                                height: 20,
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                  Icons.close,
-                                  color: Colors.white,
-                                  size: 12,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-            ],
-            // Plus button (on the right)
-            GestureDetector(
-              onTap: _isImageUploading ? null : _openGallery,
-              child: Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: _isImageUploading 
-                      ? Colors.grey.shade300 
-                      : const Color(0xFF4CAF50),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: _isImageUploading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.add,
-                        color: Colors.white,
-                        size: 24,
+            ...List.generate(_uploadedImageUrls.length, (index) {
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                margin: EdgeInsets.only(right: index == _uploadedImageUrls.length - 1 ? 12 : 8),
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(11),
+                        child: Image.network(
+                          _uploadedImageUrls[index],
+                          width: 50,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              width: 50,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(11),
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 50,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(11),
+                              ),
+                              child: Icon(
+                                Icons.error_outline,
+                                color: Colors.grey.shade600,
+                                size: 20,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _uploadedImageUrls.removeAt(index);
+                          });
+                        },
+                        child: Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 2,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: GestureDetector(
+                onTap: _isImageUploading ? null : _openGallery,
+                child: Container(
+                  width: 50,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: _isImageUploading 
+                        ? Colors.grey.shade300 
+                        : const Color(0xFF4CAF50),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: _isImageUploading
+                      ? const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                ),
               ),
             ),
           ],
@@ -1562,5 +1571,325 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
         });
       }
     }
+  }
+
+  Future<List<Expense>> _getRecentExpenses() async {
+    try {
+      final allExpenses = await _expenseService.getAllExpenses();
+      final filteredExpenses = allExpenses
+          .where((expense) => expense.id != widget.expenseId)
+          .toList();
+      
+      filteredExpenses.sort((a, b) => b.date.compareTo(a.date));
+      
+      return filteredExpenses.take(3).toList();
+    } catch (e) {
+      print('Failed to fetch recent expenses: $e');
+      return _getMockExpenses();
+    }
+  }
+
+  List<Expense> _getMockExpenses() {
+    final now = DateTime.now();
+    return [
+      Expense(
+        id: 'mock1',
+        date: now.subtract(const Duration(days: 1)),
+        categoryName: 'Grocery',
+        vendorName: 'Supermarket',
+        items: [],
+        itemIds: [],
+        totalBilling: 2500.00,
+        paid: 2500.00,
+        paymentMode: 'UPI',
+        notes: 'Weekly grocery shopping',
+        imageUrls: [],
+      ),
+      Expense(
+        id: 'mock2',
+        date: now.subtract(const Duration(days: 2)),
+        categoryName: 'Food',
+        vendorName: 'Restaurant',
+        items: [],
+        itemIds: [],
+        totalBilling: 850.00,
+        paid: 850.00,
+        paymentMode: 'Cash',
+        notes: 'Dinner with friends',
+        imageUrls: [],
+      ),
+      Expense(
+        id: 'mock3',
+        date: now.subtract(const Duration(days: 3)),
+        categoryName: 'Transport',
+        vendorName: null,
+        items: [],
+        itemIds: [],
+        totalBilling: 120.00,
+        paid: 120.00,
+        paymentMode: 'Debit/Credit Card',
+        notes: 'Taxi fare',
+        imageUrls: [],
+      ),
+    ];
+  }
+
+  void _showViewHistory() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * ResponsiveUtils.getModalHeight(context),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: const Text(
+                      'View History',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    height: 1,
+                    color: Colors.black,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildHistoryItem(
+                        icon: Icons.add,
+                        title: 'Expense Entry Created & No payment done',
+                        subtitle: 'Creation Date: ${_formatHistoryDateTime(_expenseCreatedAt)}',
+                        createdBy: 'Created By: Manager\'s Name',
+                        iconColor: const Color(0xFF4CAF50),
+                        imageUrls: [],
+                      ),
+                      const SizedBox(height: 12),
+                      FutureBuilder<List<Expense>>(
+                        future: _getRecentExpenses(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF4CAF50),
+                              ),
+                            );
+                          }
+                          
+                          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          
+                          return Column(
+                            children: snapshot.data!.map((expense) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildHistoryItem(
+                                icon: Icons.receipt_outlined,
+                                title: 'Payment of ₹ ${expense.totalBilling.toStringAsFixed(2)} via ${expense.paymentMode}',
+                                subtitle: 'Creation Date: ${_formatHistoryDateTime(expense.date)}',
+                                createdBy: 'Created By: Manager\'s Name',
+                                iconColor: Colors.orange,
+                                imageUrls: expense.imageUrls,
+                              ),
+                            )).toList(),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String createdBy,
+    required Color iconColor,
+    required List<String> imageUrls,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 25,
+            height: 25,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(color: iconColor, width: 1.5),
+            ),
+            child: Center(
+              child: Icon(
+                icon,
+                color: iconColor,
+                size: 14,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  createdBy,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                if (imageUrls.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 60,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: imageUrls.length > 4 ? 4 : imageUrls.length,
+                      itemBuilder: (context, index) {
+                        if (index == 3 && imageUrls.length > 4) {
+                          return Container(
+                            width: 40,
+                            height: 60,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '+${imageUrls.length - 3}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        return Container(
+                          width: 40,
+                          height: 60,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(7),
+                            child: Image.network(
+                              imageUrls[index],
+                              width: 40,
+                              height: 60,
+                              fit: BoxFit.cover,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Container(
+                                  width: 40,
+                                  height: 60,
+                                  color: Colors.grey.shade100,
+                                  child: const Center(
+                                    child: SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 40,
+                                  height: 60,
+                                  color: Colors.grey.shade100,
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    size: 16,
+                                    color: Colors.grey.shade400,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatHistoryDateTime(DateTime dateTime) {
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    
+    String formatTime(int value) => value.toString().padLeft(2, '0');
+    
+    return '${dateTime.day.toString().padLeft(2, '0')}-${months[dateTime.month - 1]}-${dateTime.year}, ${formatTime(dateTime.hour)}:${formatTime(dateTime.minute)} hrs';
   }
 }
