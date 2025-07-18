@@ -1692,6 +1692,22 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                         imageUrls: [],
                       ),
                       const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 60,
+                            child: Container(),
+                          ),
+                          Expanded(
+                            flex: 40,
+                            child: Container(
+                              height: 1,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
                       FutureBuilder<List<Expense>>(
                         future: _getRecentExpenses(),
                         builder: (context, snapshot) {
@@ -1708,17 +1724,37 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                           }
                           
                           return Column(
-                            children: snapshot.data!.map((expense) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _buildHistoryItem(
-                                icon: Icons.receipt_outlined,
-                                title: 'Payment of ₹ ${expense.totalBilling.toStringAsFixed(2)} via ${expense.paymentMode}',
-                                subtitle: 'Creation Date: ${_formatHistoryDateTime(expense.date)}',
-                                createdBy: 'Created By: Manager\'s Name',
-                                iconColor: Colors.orange,
-                                imageUrls: expense.imageUrls,
-                              ),
-                            )).toList(),
+                            children: [
+                              for (int i = 0; i < snapshot.data!.length; i++) ...[
+                                _buildHistoryItem(
+                                  icon: Icons.receipt_outlined,
+                                  title: 'Payment of ₹ ${snapshot.data![i].totalBilling.toStringAsFixed(2)} via ${snapshot.data![i].paymentMode}',
+                                  subtitle: 'Creation Date: ${_formatHistoryDateTime(snapshot.data![i].date)}',
+                                  createdBy: 'Created By: Manager\'s Name',
+                                  iconColor: Colors.orange,
+                                  imageUrls: snapshot.data![i].imageUrls,
+                                ),
+                                if (i < snapshot.data!.length - 1) ...[
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        flex: 60,
+                                        child: Container(),
+                                      ),
+                                      Expanded(
+                                        flex: 40,
+                                        child: Container(
+                                          height: 1,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                              ],
+                            ],
                           );
                         },
                       ),
