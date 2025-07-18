@@ -1841,68 +1841,74 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                       itemCount: imageUrls.length > 4 ? 4 : imageUrls.length,
                       itemBuilder: (context, index) {
                         if (index == 3 && imageUrls.length > 4) {
-                          return Container(
-                            width: 40,
-                            height: 60,
-                            margin: const EdgeInsets.only(right: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                              child: Text(
-                                '+${imageUrls.length - 3}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade600,
+                          return GestureDetector(
+                            onTap: () => _showImageViewer(context, imageUrls, 3),
+                            child: Container(
+                              width: 40,
+                              height: 60,
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '+${imageUrls.length - 3}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey.shade600,
+                                  ),
                                 ),
                               ),
                             ),
                           );
                         }
-                        return Container(
-                          width: 40,
-                          height: 60,
-                          margin: const EdgeInsets.only(right: 8),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(7),
-                            child: Image.network(
-                              imageUrls[index],
-                              width: 40,
-                              height: 60,
-                              fit: BoxFit.cover,
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Container(
-                                  width: 40,
-                                  height: 60,
-                                  color: Colors.grey.shade100,
-                                  child: const Center(
-                                    child: SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
+                        return GestureDetector(
+                          onTap: () => _showImageViewer(context, imageUrls, index),
+                          child: Container(
+                            width: 40,
+                            height: 60,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(7),
+                              child: Image.network(
+                                imageUrls[index],
+                                width: 40,
+                                height: 60,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    width: 40,
+                                    height: 60,
+                                    color: Colors.grey.shade100,
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  width: 40,
-                                  height: 60,
-                                  color: Colors.grey.shade100,
-                                  child: Icon(
-                                    Icons.image_not_supported,
-                                    size: 16,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                );
-                              },
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 40,
+                                    height: 60,
+                                    color: Colors.grey.shade100,
+                                    child: Icon(
+                                      Icons.image_not_supported,
+                                      size: 16,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ),
                         );
@@ -1927,5 +1933,148 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
     String formatTime(int value) => value.toString().padLeft(2, '0');
     
     return '${dateTime.day.toString().padLeft(2, '0')}-${months[dateTime.month - 1]}-${dateTime.year}, ${formatTime(dateTime.hour)}:${formatTime(dateTime.minute)} hrs';
+  }
+
+  void _showImageViewer(BuildContext context, List<String> imageUrls, int initialIndex) {
+    final PageController pageController = PageController(initialPage: initialIndex);
+    int currentIndex = initialIndex;
+    
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: Stack(
+            children: [
+              // Background overlay
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+              // Image viewer
+              Center(
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  child: PageView.builder(
+                    controller: pageController,
+                    itemCount: imageUrls.length,
+                    onPageChanged: (index) {
+                      setState(() {
+                        currentIndex = index;
+                      });
+                    },
+                    itemBuilder: (context, index) {
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: InteractiveViewer(
+                            minScale: 0.5,
+                            maxScale: 3.0,
+                            child: Image.network(
+                              imageUrls[index],
+                              fit: BoxFit.contain,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Container(
+                                  color: Colors.grey.shade200,
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      color: const Color(0xFF4CAF50),
+                                      value: loadingProgress.expectedTotalBytes != null
+                                          ? loadingProgress.cumulativeBytesLoaded /
+                                              loadingProgress.expectedTotalBytes!
+                                          : null,
+                                    ),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey.shade200,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.broken_image,
+                                        color: Colors.grey.shade400,
+                                        size: 48,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Failed to load image',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              // Close button
+              Positioned(
+                top: 60,
+                right: 20,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+              // Image counter (if more than one image)
+              if (imageUrls.length > 1)
+                Positioned(
+                  bottom: 60,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        '${currentIndex + 1} of ${imageUrls.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
